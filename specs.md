@@ -1,14 +1,14 @@
-# aqua-web — Svelte App Specs
+# aqua-web — Specs
 
-> Detailed specification for the aqua-web companion app.
-> Built with **Svelte 5 + Vite**, zero other dependencies.
+> Specification for the aqua-web companion app.
+> Built with **SvelteKit + Svelte 5**, TypeScript, vanilla CSS.
 
 ---
 
 ## 1. Project Setup
 
 ```bash
-npm create vite@latest aqua-web -- --template svelte
+npx sv create aqua-web --template minimal --types ts
 cd aqua-web
 npm install
 npm run dev
@@ -57,40 +57,41 @@ interface HistoryData {
 
 ---
 
-## 3. File Structure
+## 3. File Structure (SvelteKit)
 
 ```
-aqua-web/
-├── index.html
-├── package.json
-├── vite.config.js
-├── src/
-│   ├── main.js              # mount App
-│   ├── App.svelte           # root component
-│   ├── DropZone.svelte      # file import UI
-│   ├── Report.svelte        # main report view (shown after import)
-│   ├── ModelTable.svelte    # per-model breakdown table
-│   ├── WaterContainer.svelte # animated container visualization
-│   ├── Comparisons.svelte   # real-world comparison text
-│   ├── Progress.svelte      # progress bar
-│   ├── utils/
-│   │   ├── containers.js    # container definitions (capacity, dimensions)
-│   │   ├── comparisons.js   # COMPARISONS array + pickComparisons()
-│   │   ├── colors.js        # color palette constants
-│   │   └── format.js        # number formatting helpers
-│   └── styles/
-│       └── global.css       # reset, fonts, base styles
-└── public/
-    └── favicon.svg
+src/
+├── app.html                         # HTML shell (og tags, fonts)
+├── app.css                          # Global styles, reset, typography
+├── routes/
+│   ├── +layout.svelte               # Root layout (metadata, global CSS)
+│   └── +page.svelte                 # Root page (data state management)
+└── lib/
+    ├── types.ts                     # TypeScript interfaces
+    ├── DropZone.svelte              # File import UI
+    ├── Report.svelte                # Main report layout
+    ├── ModelTable.svelte            # Per-model breakdown table
+    ├── WaterContainer.svelte        # Animated CSS grid container
+    ├── WaterImpact.svelte           # Earth comparison cards
+    ├── WaterFacts.svelte            # Global water statistics grid
+    ├── ReservoirWidget.svelte       # Live reservoir levels
+    ├── Progress.svelte              # Progress bar
+    ├── Comparisons.svelte           # Real-world comparison text
+    └── utils/
+        ├── colors.ts                # Color palette constants
+        ├── format.ts                # Number formatting helpers
+        ├── containers.ts            # Container definitions & selection
+        ├── comparisons.ts           # Comparison data & picker
+        └── water-bodies.ts          # Earth water body data & comparisons
 ```
 
 ---
 
 ## 4. Components
 
-### 4.1 `App.svelte`
+### 4.1 `+page.svelte`
 
-Root component. Manages state: `data` (null or `AquaExport`).
+Root page. Manages state: `data` (null or `AquaExport`).
 
 ```
 State:
@@ -118,10 +119,11 @@ Full-screen drag-and-drop zone with a file picker fallback.
 - Shows error toast if invalid
 
 **Visual:**
-- Centered dashed border box (2px dashed `#3b82f6`)
-- Hover state: border solid, background `rgba(59, 130, 246, 0.05)`
-- Text: "Drop your aqua export here" + "or click to browse"
-- Subtle pulse animation on the icon
+- Centered card with water drop SVG icon
+- Soft border on hover, subtle lift animation
+- Text: "Drop your aqua export" + "or click to browse"
+- Kbd hint: `.json` file from `aqua export`
+- Error toast with slide-in animation
 
 ### 4.3 `Report.svelte`
 
@@ -134,20 +136,27 @@ Main view after import. Stacks all sections vertically.
 **Layout:**
 ```
 ┌─────────────────────────────────────────────┐
-│  aqua  logo (ASCII art, centered)           │
+│  A Q U A   (ASCII art, centered)            │
 │  "water footprint estimator, for fun"       │
 ├─────────────────────────────────────────────┤
-│  Summary bar:                               │
-│    🔎 Detected: opencode                    │
-│    380,398,365 tokens                       │
+│  Summary pills:                             │
+│    🔎 Detected: opencode · 💧 380M tokens   │
 ├─────────────────────────────────────────────┤
 │  ModelTable {modelBreakdown}                │
 ├─────────────────────────────────────────────┤
 │  Progress {totalMl / containerCapacity}     │
 │  WaterContainer {totalMl}                   │
-│  Comparisons {totalMl}                      │
 ├─────────────────────────────────────────────┤
-│  History: 1,518,381,778 lifetime tokens     │
+│  WaterImpact {totalMl}                      │
+│    • Containers Filled                      │
+│    • Sessions to Fill (Lake Superior, etc.) │
+│    • The Fraction                           │
+│    • What Your Water Could Do               │
+├─────────────────────────────────────────────┤
+│  WaterFacts (2x2 grid of global stats)      │
+│  ReservoirWidget (live global reservoirs)   │
+├─────────────────────────────────────────────┤
+│  History: 1.5B lifetime tokens              │
 │  [Export Again] [Reset]                     │
 └─────────────────────────────────────────────┘
 ```
@@ -161,25 +170,12 @@ Box-drawing table matching the CLI's visual style.
 - `totalTokens: number`
 - `totalMl: number`
 
-**Template structure (CSS borders, not ASCII):**
-```
-┌──────────────────────────────────────────────────┐
-│  Model                         Tokens  Water (est.) │
-├──────────────────────────────────────────────────┤
-│  mimo-v2.5-free           121,164,525  1817468 mL  │
-│  deepseek-v4-flash-free    84,895,342  1697907 mL  │
-│  ...                                              │
-├──────────────────────────────────────────────────┤
-│  Total                    380,398,365  5873834 mL  │
-└──────────────────────────────────────────────────┘
-```
-
-**CSS approach:**
-- `border: 2px solid #38bdf8` (cyan-400) on outer container
-- Header row, separator rows, and footer row use `border-top` / `border-bottom`
-- Columns use CSS grid or flexbox for alignment
-- Monospace font (`font-family: 'JetBrains Mono', 'Fira Code', monospace`)
+**Visual:**
+- Card-style container with subtle border
+- Row hover effects (background shift)
+- Monospace font (JetBrains Mono)
 - Numbers right-aligned, model names left-aligned
+- Uppercase muted headers
 
 ### 4.5 `WaterContainer.svelte`
 
@@ -188,7 +184,7 @@ The core visualization. Renders a CSS-styled container that fills based on `tota
 **Props:**
 - `ml: number` (total estimated water)
 
-**Container selection logic (same as CLI):**
+**Container selection logic:**
 ```javascript
 function pickContainer(ml) {
   if (ml < 300) return "glass";
@@ -209,168 +205,140 @@ const CONTAINERS = {
 ```
 
 **Rendering:**
-- The container is a `<div>` with CSS grid (width × height cells)
-- Each cell is a `<div>` with a background color based on depth
-- Surface cells use a wave animation
-- Bubble cells use a rising animation
-- Fill fraction = `ml / capMl`, clamped to [0, 1]
+- CSS grid (width × height cells) with gap
+- Cell color based on depth (deep/mid/surface/shine)
+- Surface cells use wave animation
+- Bubble cells use rising animation
+- Fill animation via `$effect` + `requestAnimationFrame` (easeOutCubic, 1800ms)
 
-**Cell layout:**
-```
-Total cells = innerWidth × innerHeight
-Filled cells = round(fraction × totalCells)
-Filled rows (from bottom): fill bottom-up, reverse for display top-to-bottom
-```
+### 4.6 `WaterImpact.svelte`
 
-### 4.6 `Progress.svelte`
+Earth comparison cards showing the user's water usage against real-world water bodies.
 
-Progress bar with percentage.
+**Props:**
+- `ml: number` (total estimated water)
+
+**Cards:**
+1. **Containers Filled** — how many bathtubs, showers, etc. the user filled
+2. **Sessions to Fill** — how many identical sessions to fill Lake Superior, Pacific Ocean, etc.
+3. **The Fraction** — tiny fraction of a water body the user's usage represents
+4. **What Your Water Could Do** — supply a person for X days, water a garden, etc.
+
+**Data source:** `utils/water-bodies.ts` with volumes in liters for 8 water bodies.
+
+### 4.7 `WaterFacts.svelte`
+
+2×2 grid of global water statistics with intersection observer fade-in.
+
+**Data source:** `water-facts.json` with 4 categories:
+- Earth's Water (ocean %, freshwater %, etc.)
+- Water Stress (people affected, agriculture use, etc.)
+- AI Water Footprint (training costs, inference costs, etc.)
+- Your Tokens in Perspective (per-token cost, per-billion cost, etc.)
+
+### 4.8 `ReservoirWidget.svelte`
+
+Live global reservoir data visualization.
+
+**Data:** Curated snapshot from reservoirs.earth (11 countries, 1,942 reservoirs).
+
+**Features:**
+- SVG arc gauge showing global average fill (50.6%)
+- Stat pills (total reservoirs, countries, critically low)
+- Country-level mini-bars with color coding (green/blue/amber/red)
+- Hover effects on each country row
+
+### 4.9 `Progress.svelte`
+
+Full-width progress bar with label.
 
 **Props:**
 - `fraction: number` (0–1)
 
-**Template:**
-```
-▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░  60% filled
-```
+**Visual:**
+- Header row with "Fill level" label and percentage
+- Monospace `━` characters, filled in accent color
+- Card-style container
 
-**CSS:**
-- Container: `display: flex; gap: 8px; align-items: center`
-- Bar: monospace characters, filled cells `color: #38bdf8`, empty cells `color: #64748b`
-- Percentage: bold, white text
+### 4.10 `Comparisons.svelte`
 
-### 4.7 `Comparisons.svelte`
-
-Real-world comparison text with emojis.
+Real-world comparison text with emojis. Used internally by WaterImpact.
 
 **Props:**
 - `ml: number`
 
-**Logic:** (identical to CLI's `pickComparisons`)
-```javascript
-function pickComparisons(ml) {
-  // Find the largest reference point <= ml
-  // Print: "💧 ≈ X <unit> <emoji> · ≈ Y% of a <unit> <emoji>"
-  // Brackets the actual value between a smaller and larger reference
-}
-```
-
-**Template:**
-```
-💧 ≈ 1.14 small backyard pools 🏊 · ≈ 28.53% of a backyard pool 🏊
-```
+**Logic:** `pickComparisons()` finds the largest reference point ≤ ml and brackets between smaller/larger.
 
 ---
 
 ## 5. Color Palette
 
-All colors derived from the CLI's ANSI codes, mapped to hex for CSS.
-
 ### Water gradient (bottom → top)
 
-| Role | CLI ANSI | Hex | Usage |
-|------|----------|-----|-------|
-| Deep water | `38;5;21` | `#0000ff` | Bottom rows of container |
-| Mid water | `38;5;27` | `#005fff` | Middle rows |
-| Surface water | `38;5;45` | `#0087ff` | Rows near top of fill |
-| Surface shine | `38;5;87` | `#5fffff` | Wave characters, bubbles |
+| Role | Hex | Usage |
+|------|-----|-------|
+| Deep water | `#0000ff` | Bottom rows of container |
+| Mid water | `#005fff` | Middle rows |
+| Surface water | `#0087ff` | Rows near top of fill |
+| Surface shine | `#5fffff` | Wave characters, bubbles |
 
-### Container borders
-
-| Element | Hex | Usage |
-|---------|-----|-------|
-| Border color | `#38bdf8` | Container outlines, table borders |
-| Border glow | `rgba(56, 189, 248, 0.3)` | Subtle box-shadow on hover |
-
-### Background / text
+### UI colors
 
 | Element | Hex | Usage |
 |---------|-----|-------|
-| Page background | `#0f172a` | Dark navy, main bg |
-| Card background | `#1e293b` | Report card bg |
+| Page background | `#0a0f1a` | Dark navy, main bg |
+| Card background | `rgba(30, 41, 59, 0.5)` | Report cards bg |
 | Primary text | `#f8fafc` | Headings, numbers |
 | Secondary text | `#94a3b8` | Labels, dim text |
+| Muted text | `#64748b` | Hints, footnotes |
 | Accent | `#38bdf8` | Links, highlights, progress bar |
-| Error | `#f59e0b` | Warnings |
-
-### Empty cell
-
-| Element | Hex | Usage |
-|---------|-----|-------|
-| Empty cell | `#334155` | Unfilled container cells (slate-700) |
+| Border | `rgba(56, 189, 248, 0.1)` | Card borders |
+| Empty cell | `#334155` | Unfilled container cells |
+| Error | `#ef4444` | Error toasts |
 
 ---
 
 ## 6. Animations
 
-All animations use CSS `@keyframes`. No JS animation libraries.
+All animations use CSS `@keyframes` or Svelte `$effect` + `requestAnimationFrame`. No JS animation libraries.
 
-### 6.1 Wave animation
+### 6.1 Wave animation (surface cells)
 
-The surface row of water has a subtle horizontal oscillation.
+Diagonal oscillation with stagger per column.
 
 ```css
 @keyframes wave {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(-3px); }
-}
-
-.wave-cell {
-  animation: wave 1.5s ease-in-out infinite;
-  animation-delay: calc(var(--col) * 0.05s); /* stagger per column */
+  0%, 100% { transform: translateX(0) translateY(0); }
+  25% { transform: translateX(-1.5px) translateY(-0.5px); }
+  75% { transform: translateX(1.5px) translateY(0.5px); }
 }
 ```
 
-### 6.2 Bubble animation
+### 6.2 Bubble animation (random cells)
 
-Random cells in the water show rising bubbles.
+Rising bubbles with fade-out, staggered by seed.
 
 ```css
 @keyframes bubble-rise {
-  0% { transform: translateY(0) scale(1); opacity: 0.7; }
-  50% { transform: translateY(-8px) scale(1.2); opacity: 1; }
-  100% { transform: translateY(-16px) scale(0.8); opacity: 0; }
-}
-
-.bubble-cell {
-  animation: bubble-rise 2s ease-in-out infinite;
-  animation-delay: calc(var(--seed) * 0.3s);
+  0% { transform: translateY(0) scale(1); opacity: 0.6; }
+  50% { transform: translateY(-6px) scale(1.15); opacity: 0.9; }
+  100% { transform: translateY(-14px) scale(0.85); opacity: 0; }
 }
 ```
 
 ### 6.3 Fill animation (on import)
 
-The container fills from empty to the target fraction over ~1.5 seconds.
+Container fills from empty to target fraction over 1800ms with easeOutCubic.
 
-```css
-@keyframes fill-up {
-  from { --fill-fraction: 0; }
-  to { --fill-fraction: var(--target); }
-}
+Implemented via `$effect` + `requestAnimationFrame` — no CSS custom properties needed.
 
-/* Use CSS Houdini @property for animatable custom properties (progressive enhancement) */
-@property --fill-fraction {
-  syntax: '<number>';
-  initial-value: 0;
-  inherits: false;
-}
-```
+### 6.4 Number counters
 
-**Fallback:** Use Svelte's `$effect` + `requestAnimationFrame` to interpolate
-`fillFraction` from 0 → target over 1500ms with easeOutCubic easing.
+Token count and mL count animate from 0 to target over 1200ms with easeOutCubic.
 
-### 6.4 Drop zone pulse
+### 6.5 Drop zone hover
 
-```css
-@keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.05); opacity: 1; }
-}
-
-.drop-icon {
-  animation: pulse 2s ease-in-out infinite;
-}
-```
+Subtle lift (`translateY(-2px)`) and glow on hover, stronger lift on drag.
 
 ---
 
@@ -378,34 +346,40 @@ The container fills from empty to the target fraction over ~1.5 seconds.
 
 | Breakpoint | Width | Behavior |
 |-----------|-------|----------|
-| Mobile | < 640px | Single column, container width 100%, table scrolls horizontally |
-| Tablet | 640–1024px | Single column, container width 80%, table fits |
-| Desktop | > 1024px | Centered max-width 800px container, full table |
+| Mobile | < 640px | Single column, font-size 14px, container 100% |
+| Tablet | 640–768px | Two-column grids collapse to single |
+| Desktop | > 768px | Two-column layouts, max-width 960px |
 
 **Container scaling:**
-- Mobile: inner cells shrink to fit viewport (min 8px per cell)
-- Desktop: cells are 12px × 12px
+- Mobile: cells min 8px
+- Desktop: cells min 12px
 
 ---
 
 ## 8. Number Formatting
 
-```javascript
-// Locale-aware thousands separator
-function formatNumber(n) {
+```typescript
+function formatNumber(n: number): string {
   return n.toLocaleString("en-US");
 }
 
-// Water volume with smart precision
-function formatMl(ml) {
+function formatMl(ml: number): string {
   if (ml >= 1000000) return (ml / 1000000).toFixed(2) + " L";
   if (ml >= 1000) return (ml / 1000).toFixed(1) + " L";
   return ml.toFixed(1) + " mL";
 }
 
-// Percentage with 2 decimal places
-function formatPct(fraction) {
+function formatPct(fraction: number): string {
   return (fraction * 100).toFixed(2) + "%";
+}
+
+function formatScientific(n: number): string {
+  if (n >= 1e15) return (n / 1e15).toFixed(2) + " quadrillion";
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + " trillion";
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + " billion";
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + " million";
+  if (n >= 1e3) return (n / 1e3).toFixed(2) + "k";
+  return n.toFixed(2);
 }
 ```
 
@@ -413,9 +387,9 @@ function formatPct(fraction) {
 
 ## 9. COMPARISONS Array
 
-Exact same data as the CLI. Include in `utils/comparisons.js`:
+Same data as the CLI. Used by `Comparisons.svelte` and `WaterImpact.svelte`.
 
-```javascript
+```typescript
 export const COMPARISONS = [
   { ml: 5,         singular: "teaspoon of water",          plural: "teaspoons of water",          emoji: "🥄" },
   { ml: 15,        singular: "tablespoon of water",        plural: "tablespoons of water",        emoji: "🥄" },
@@ -440,78 +414,24 @@ export const COMPARISONS = [
   { ml: 100000000, singular: "water tanker truck load",    plural: "water tanker truck loads",    emoji: "🚛" },
   { ml: 2500000000, singular: "Olympic swimming pool",     plural: "Olympic swimming pools",      emoji: "🏅" },
 ];
-
-export function pickComparisons(ml) {
-  let lowerIdx = -1;
-  for (let i = 0; i < COMPARISONS.length; i++) {
-    if (COMPARISONS[i].ml <= ml) lowerIdx = i;
-  }
-
-  if (lowerIdx === -1) {
-    const smallest = COMPARISONS[0];
-    const frac = (ml / smallest.ml) * 100;
-    return `💧 ≈ ${frac.toFixed(1)}% of a ${smallest.singular} ${smallest.emoji}`;
-  }
-
-  const lower = COMPARISONS[lowerIdx];
-  const lowerCount = ml / lower.ml;
-  const lowerText = `💧 ≈ ${lowerCount.toFixed(lowerCount < 10 ? 2 : 0)} ${lowerCount === 1 ? lower.singular : lower.plural} ${lower.emoji}`;
-
-  const upper = COMPARISONS[lowerIdx + 1];
-  if (!upper) return lowerText;
-
-  const upperPct = (ml / upper.ml) * 100;
-  const upperText = `≈ ${upperPct < 0.01 ? "<0.01" : upperPct.toFixed(2)}% of a ${upper.singular} ${upper.emoji}`;
-
-  return `${lowerText} · ${upperText}`;
-}
 ```
 
 ---
 
-## 10. Container Cell Rendering
+## 10. Earth Water Bodies
 
-### Cell color logic
+Used by `WaterImpact.svelte` for dramatic comparisons.
 
-```javascript
-// displayRow: 0 = top of container, totalRows = bottom
-// filledRows: array of fill counts (after reverse, index 0 = top)
-function cellColor(displayRow, col, filledCellsPerRow, totalRows) {
-  const filled = filledCellsPerRow[displayRow];
-  if (col >= filled) return COLORS.empty; // #334155
-
-  const totalFilledRows = filledCellsPerRow.filter(n => n > 0).length;
-  const topFilledRow = filledCellsPerRow.findIndex(n => n > 0);
-  const depthFromBottom = (displayRow - topFilledRow) / Math.max(1, totalFilledRows - 1);
-
-  if (depthFromBottom > 0.6) return COLORS.waterDeep;   // #0000ff
-  if (depthFromBottom > 0.3) return COLORS.waterMid;     // #005fff
-  return COLORS.waterSurface;                             // #0087ff
-}
-```
-
-### Surface row detection
-
-```javascript
-const isSurfaceRow = filled > 0 && displayRow === topFilledRow;
-// Surface cells get the wave animation + shine color (#5fffff)
-```
-
-### Bubble positions
-
-Use a deterministic PRNG (same as CLI's mulberry32) seeded with a timestamp
-to place 4–8 bubbles randomly within filled cells.
-
-```javascript
-function mulberry32(seed) {
-  let s = seed | 0;
-  return function() {
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+```typescript
+export const WATER_BODIES = [
+  { name: "Olympic Pool",    emoji: "🏊", volumeL: 2_500_000,     description: "the standard competition pool" },
+  { name: "Lake Victoria",   emoji: "🌍", volumeL: 2.42e15,      description: "Africa's largest lake" },
+  { name: "Lake Superior",   emoji: "🏔️", volumeL: 12.1e15,      description: "largest freshwater lake by area" },
+  { name: "Lake Baikal",     emoji: "🐻", volumeL: 23.6e15,      description: "deepest lake on Earth" },
+  { name: "Mediterranean",   emoji: "🌊", volumeL: 4.39e18,      description: "the inland sea" },
+  { name: "Pacific Ocean",   emoji: "🌏", volumeL: 660e18,       description: "the big one" },
+  { name: "All Oceans",      emoji: "🌍", volumeL: 1.338e21,     description: "Earth's total saltwater" },
+];
 ```
 
 ---
@@ -519,10 +439,9 @@ function mulberry32(seed) {
 ## 11. Typography
 
 ```css
-/* global.css */
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #0f172a;
+  background: #0a0f1a;
   color: #f8fafc;
   margin: 0;
   padding: 0;
@@ -533,31 +452,45 @@ body {
 }
 ```
 
-For the ASCII logo, use a `<pre>` with monospace font and a subtle
-`text-shadow: 0 0 10px rgba(56, 189, 248, 0.3)` glow effect.
+Fonts loaded via Google Fonts in `app.html`:
+- Inter (400, 500, 600, 700)
+- JetBrains Mono (400, 500, 600, 700)
 
 ---
 
 ## 12. Accessibility
 
-- All text has sufficient contrast against `#0f172a` (WCAG AA minimum)
+- All text has sufficient contrast against `#0a0f1a` (WCAG AA minimum)
 - Drop zone has `role="button"` + `aria-label="Import aqua export file"`
 - File input is visually hidden but keyboard-accessible
 - Container cells are decorative (aria-hidden="true")
-- Comparisons text uses semantic `<p>` with `aria-live="polite"` on update
+- Comparison text uses `aria-live="polite"` on update
 
 ---
 
 ## 13. Error Handling
 
-- Invalid JSON: show red toast "Invalid JSON file"
+- Invalid JSON: show error toast "Invalid JSON file"
 - Wrong schema (missing `version` or `totalMl`): show "Unrecognized export format — run `aqua export` first"
 - Empty data (totalTokens = 0): show "No token usage found in this export"
 
 ---
 
-## 14. Performance Notes
+## 14. Metadata (Vercel / SEO)
+
+`app.html` includes:
+- `<title>` — "aqua-web — Water Footprint Estimator for AI Coding"
+- `<meta name="description">` — concise description
+- Open Graph tags (og:title, og:description, og:type, og:url)
+- Twitter card tags (twitter:card, twitter:title, twitter:description)
+
+---
+
+## 15. Performance Notes
 
 - Max cells per container: 36 × 5 = 180 (pool). No performance concerns.
 - Animations use CSS only (composited by browser), no JS re-renders.
+- Fill animation uses `requestAnimationFrame` for smooth interpolation.
 - Drop zone paste handler reads from `clipboardData`, no external deps.
+- Water facts use Intersection Observer for lazy fade-in.
+- Zero runtime dependencies. Total build: ~30KB gzipped.

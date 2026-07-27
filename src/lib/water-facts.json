@@ -1,0 +1,29 @@
+{
+  "globalStats": {
+    "totalWater": "1.386 billion km³",
+    "oceanWater": "96.5% of all water on Earth",
+    "freshwater": "2.5% of all water on Earth",
+    "accessibleFreshwater": "Only 0.3% of freshwater is accessible surface water",
+    "groundwater": "68.7% of freshwater is locked in ice caps and glaciers"
+  },
+  "waterStress": {
+    "waterStressedPeople": "2.3 billion people live in water-stressed countries",
+    "dailyUsePerPerson": "Average 150-200 liters per person per day",
+    "agricultureUse": "70% of global freshwater withdrawals go to agriculture",
+    "industryUse": "19% of global freshwater withdrawals go to industry",
+    "domesticUse": "11% of global freshwater withdrawals go to domestic use"
+  },
+  "aiWaterFootprint": {
+    "trainingGpt4": "Training GPT-4 consumed ~500,000 liters of water",
+    "inferenceVsTraining": "Inference can consume 5-10x more water than training over a model's lifetime",
+    "oneChatgptQuery": "One ChatGPT query uses ~500ml of water (cooling + electricity generation)",
+    "dataCenterCooling": "Cooling accounts for ~40% of data center energy consumption",
+    "globalDataCenters": "There are over 8,000 data centers worldwide, consuming ~1-2% of global electricity"
+  },
+  "perspective": {
+    "oneTokenWater": "Est. 0.0000015 liters per token (varies by model and facility)",
+    "oneBillionTokens": "~1,500 liters — enough for one person's daily water needs for 10 days",
+    "oneTrillionTokens": "~1.5 million liters — enough to fill a small swimming pool",
+    "aiWaterGrowth": "AI water consumption projected to increase 4-5x by 2028"
+  }
+}

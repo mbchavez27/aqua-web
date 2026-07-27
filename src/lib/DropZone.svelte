@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { AquaExport } from '$lib/types';
+	import HowToGet from './HowToGet.svelte';
 
 	let { onImport }: { onImport: (data: AquaExport) => void } = $props();
 
@@ -135,6 +136,8 @@
 			<span>{errorMsg}</span>
 		</div>
 	{/if}
+
+	<HowToGet />
 </div>
 
 <style>

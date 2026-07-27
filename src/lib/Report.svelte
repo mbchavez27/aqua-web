@@ -2,6 +2,7 @@
 	import type { AquaExport } from '$lib/types';
 	import { formatNumber, formatMl } from '$lib/utils/format';
 	import { pickContainer, CONTAINERS } from '$lib/utils/containers';
+	import { computeTotalWaterMl, validateWaterPipeline } from '$lib/utils/water-utils';
 	import ModelTable from './ModelTable.svelte';
 	import WaterContainer from './WaterContainer.svelte';
 	import Progress from './Progress.svelte';
@@ -11,20 +12,28 @@
 
 	let { data, onReset }: { data: AquaExport; onReset: () => void } = $props();
 
-	const containerName = $derived(pickContainer(data.totalMl));
-	const container = $derived(CONTAINERS[containerName]);
-	const fraction = $derived(Math.min(1, data.totalMl / container.capMl));
-
 	const sourceLabels = $derived(
 		data.sources.length > 0 ? data.sources.map((s) => s.label).join(', ') : 'unknown'
 	);
+
+	// SINGLE SOURCE OF TRUTH — all water values derive from this
+	const totalWaterMl = $derived(computeTotalWaterMl(data.modelBreakdown));
+
+	const containerName = $derived(pickContainer(totalWaterMl));
+	const container = $derived(CONTAINERS[containerName]);
+	const fraction = $derived(Math.min(1, totalWaterMl / container.capMl));
+
+	// Validation check (development only)
+	$effect(() => {
+		validateWaterPipeline(data.modelBreakdown, data.totalMl);
+	});
 
 	let displayTokens = $state(0);
 	let displayMl = $state(0);
 
 	$effect(() => {
 		const targetTokens = data.totalTokens;
-		const targetMl = data.totalMl;
+		const targetMl = totalWaterMl;
 		const duration = 1200;
 		const start = performance.now();
 
@@ -33,12 +42,20 @@
 			const progress = Math.min(elapsed / duration, 1);
 			const eased = 1 - Math.pow(1 - progress, 3);
 			displayTokens = Math.round(eased * targetTokens);
-			displayMl = Math.round(eased * targetMl);
+			displayMl = eased * targetMl;
 			if (progress < 1) requestAnimationFrame(tick);
 		}
 
 		requestAnimationFrame(tick);
 	});
+
+	function handlePillMouse(e: MouseEvent, el: HTMLElement) {
+		const rect = el.getBoundingClientRect();
+		const x = ((e.clientX - rect.left) / rect.width) * 100;
+		const y = ((e.clientY - rect.top) / rect.height) * 100;
+		el.style.setProperty('--mx', x + '%');
+		el.style.setProperty('--my', y + '%');
+	}
 
 	function handleExport() {
 		const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -60,12 +77,20 @@
 	</header>
 
 	<div class="summary-row">
-		<div class="summary-pill">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="summary-pill"
+			onmousemove={(e) => handlePillMouse(e, e.currentTarget)}
+		>
 			<span class="pill-icon">🔎</span>
 			<span class="pill-label">Detected</span>
 			<span class="pill-value">{sourceLabels}</span>
 		</div>
-		<div class="summary-pill accent">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="summary-pill accent"
+			onmousemove={(e) => handlePillMouse(e, e.currentTarget)}
+		>
 			<span class="pill-icon">💧</span>
 			<span class="pill-value">{formatNumber(displayTokens)} tokens</span>
 		</div>
@@ -75,19 +100,18 @@
 		<ModelTable
 			modelBreakdown={data.modelBreakdown}
 			totalTokens={data.totalTokens}
-			totalMl={data.totalMl}
 		/>
 	</section>
 
 	<section class="section visualization">
 		<Progress {fraction} />
-		<WaterContainer ml={data.totalMl} />
+		<WaterContainer ml={totalWaterMl} />
 	</section>
 
 	<div class="divider"></div>
 
 	<section class="section">
-		<WaterImpact ml={data.totalMl} />
+		<WaterImpact ml={totalWaterMl} />
 	</section>
 
 	<section class="section">
@@ -196,11 +220,29 @@
 		background: rgba(30, 41, 59, 0.5);
 		border: 1px solid rgba(56, 189, 248, 0.08);
 		border-radius: 99px;
-		transition: border-color 0.3s ease;
+		transition: border-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.summary-pill::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(56, 189, 248, 0.12) 0%, transparent 60%);
+		opacity: 0;
+		transition: opacity 0.3s ease;
+		pointer-events: none;
 	}
 
 	.summary-pill:hover {
-		border-color: rgba(56, 189, 248, 0.2);
+		border-color: rgba(56, 189, 248, 0.25);
+		transform: translateY(-1px);
+		box-shadow: 0 4px 16px rgba(56, 189, 248, 0.08);
+	}
+
+	.summary-pill:hover::after {
+		opacity: 1;
 	}
 
 	.summary-pill.accent {
@@ -233,7 +275,7 @@
 	}
 
 	.visualization {
-		align-items: center;
+		align-items: stretch;
 	}
 
 	.divider {

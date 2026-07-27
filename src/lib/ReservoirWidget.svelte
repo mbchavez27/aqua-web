@@ -171,12 +171,23 @@
 
 	.gauge-fill {
 		animation: gauge-draw 1.5s ease-out forwards;
+		transform-origin: center;
+	}
+
+	.reservoir-widget:hover .gauge-fill {
+		animation: gauge-wobble 0.6s ease-in-out;
 	}
 
 	@keyframes gauge-draw {
 		from {
 			stroke-dasharray: 0 157;
 		}
+	}
+
+	@keyframes gauge-wobble {
+		0%, 100% { transform: rotate(0deg); }
+		25% { transform: rotate(-3deg); }
+		75% { transform: rotate(3deg); }
 	}
 
 	.gauge-label {
@@ -255,6 +266,15 @@
 
 	.bar-row.hovered {
 		background: rgba(56, 189, 248, 0.05);
+	}
+
+	.bar-row.hovered .bar-fill {
+		box-shadow: 0 0 8px currentColor;
+		filter: brightness(1.2);
+	}
+
+	.bar-fill {
+		transition: width 0.8s ease-out, box-shadow 0.3s ease, filter 0.3s ease;
 	}
 
 	.bar-info {

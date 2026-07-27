@@ -157,5 +157,20 @@
 		left: 0;
 		color: #38bdf8;
 		font-weight: 700;
+		transition: transform 0.2s ease, color 0.2s ease;
+	}
+
+	.fact-list li:hover::before {
+		transform: scale(1.5);
+		color: #7dd3fc;
+	}
+
+	.fact-list li {
+		transition: color 0.2s ease, padding-left 0.2s ease;
+	}
+
+	.fact-list li:hover {
+		color: #cbd5e1;
+		padding-left: 20px;
 	}
 </style>

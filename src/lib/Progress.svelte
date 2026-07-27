@@ -13,10 +13,10 @@
 	</div>
 	<div class="bar">
 		{#each Array(filled) as _, i}
-			<span class="cell filled">━</span>
+			<span class="cell filled" style="--i: {i}">━</span>
 		{/each}
 		{#each Array(empty) as _, i}
-			<span class="cell empty">━</span>
+			<span class="cell empty" style="--i: {filled + i}">━</span>
 		{/each}
 	</div>
 </div>
@@ -27,7 +27,6 @@
 		flex-direction: column;
 		gap: 8px;
 		width: 100%;
-		max-width: 480px;
 	}
 
 	.progress-header {
@@ -65,6 +64,12 @@
 		font-size: 0.75rem;
 		line-height: 1;
 		flex: 1;
+		transition: transform 0.2s ease, text-shadow 0.2s ease;
+	}
+
+	.bar:hover .cell.filled {
+		animation: cell-pulse 0.4s ease-in-out;
+		animation-delay: calc(var(--i, 0) * 0.03s);
 	}
 
 	.cell.filled {
@@ -73,5 +78,10 @@
 
 	.cell.empty {
 		color: #1e293b;
+	}
+
+	@keyframes cell-pulse {
+		0%, 100% { transform: scaleY(1); text-shadow: none; }
+		50% { transform: scaleY(1.4); text-shadow: 0 0 8px rgba(56, 189, 248, 0.5); }
 	}
 </style>

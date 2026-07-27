@@ -208,11 +208,13 @@
 		border: 1px solid rgba(56, 189, 248, 0.1);
 		border-radius: 12px;
 		padding: 24px;
-		transition: border-color 0.3s ease;
+		transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 	}
 
 	.card:hover {
-		border-color: rgba(56, 189, 248, 0.2);
+		border-color: rgba(56, 189, 248, 0.25);
+		transform: translateY(-4px);
+		box-shadow: 0 8px 32px rgba(56, 189, 248, 0.08);
 	}
 
 	.card-highlight {
